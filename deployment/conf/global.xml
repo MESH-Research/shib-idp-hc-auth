@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+                           
+       default-init-method="initialize"
+       default-destroy-method="destroy">
+
+   <!-- 
+     These beens have been moved here from conf/authn/ldap-authn-config.xml so
+     that they can be accesssed from the expiring password flow, specifically
+     from expiring-password-beans.xml.
+   -->
+
+    <!-- Connection Configuration -->
+    <bean id="connectionConfig" class="org.ldaptive.ConnectionConfig" abstract="true" p:ldapUrl="%{idp.authn.LDAP.ldapURL}"
+        p:useStartTLS="%{idp.authn.LDAP.useStartTLS:true}"
+        p:useSSL="%{idp.authn.LDAP.useSSL:false}"
+        p:connectTimeout="%{idp.authn.LDAP.connectTimeout:3000}"
+        p:sslConfig-ref="sslConfig" />
+
+    <alias name="%{idp.authn.LDAP.sslConfig:certificateTrust}" alias="sslConfig" />
+
+    <bean id="jvmTrust" class="org.ldaptive.ssl.SslConfig" />
+
+    <bean id="bindPooledConnectionFactory" class="org.ldaptive.pool.PooledConnectionFactory" p:connectionPool-ref="bindConnectionPool" />
+
+    <bean id="bindConnectionPool" class="org.ldaptive.pool.BlockingConnectionPool" parent="connectionPool"
+        p:connectionFactory-ref="bindConnectionFactory" p:name="bind-pool" />
+
+    <bean id="bindConnectionFactory" class="org.ldaptive.DefaultConnectionFactory" p:connectionConfig-ref="bindConnectionConfig" />
+
+    <bean id="bindConnectionConfig" parent="connectionConfig" />
+
+    <bean id="searchValidator" class="org.ldaptive.pool.SearchValidator" />
+
+    <!-- Pool Configuration -->
+    <bean id="connectionPool" class="org.ldaptive.pool.BlockingConnectionPool" abstract="true"
+        p:blockWaitTime="%{idp.pool.LDAP.blockWaitTime:3000}"
+        p:poolConfig-ref="poolConfig"
+        p:pruneStrategy-ref="pruneStrategy"
+        p:validator-ref="searchValidator"
+        p:failFastInitialize="%{idp.pool.LDAP.failFastInitialize:false}" />
+    <bean id="poolConfig" class="org.ldaptive.pool.PoolConfig"
+        p:minPoolSize="%{idp.pool.LDAP.minSize:3}"
+        p:maxPoolSize="%{idp.pool.LDAP.maxSize:10}"
+        p:validateOnCheckOut="%{idp.pool.LDAP.validateOnCheckout:false}"
+        p:validatePeriodically="%{idp.pool.LDAP.validatePeriodically:true}"
+        p:validatePeriod="%{idp.pool.LDAP.validatePeriod:300}" />
+    <bean id="pruneStrategy" class="org.ldaptive.pool.IdlePruneStrategy"
+        p:prunePeriod="%{idp.pool.LDAP.prunePeriod:300}"
+        p:idleTime="%{idp.pool.LDAP.idleTime:600}" />
+
+</beans>
